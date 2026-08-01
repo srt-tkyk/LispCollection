@@ -4,7 +4,7 @@
 ;;;;   - PPM は write-sequence で一括書き出し
 ;;;;   - 捕食者は白いリングで縁取って描き分ける（CLOS 版のときのみ）
 ;;;;
-;;;; evolve-gp.lisp / alife-clos.lisp のどちらとも組み合わせて使える。
+;;;; alife-herbivore.lisp / alife-predator.lisp のどちらとも組み合わせて使える。
 
 (defparameter *frame-width*  500)
 (defparameter *frame-height* 500)

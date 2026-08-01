@@ -17,7 +17,7 @@
 (defun record-of (id) (gethash id *lineage*))
 
 (defun log-birth (child parent w)
-  "出生を記録する。alife-clos.lisp の *BIRTH-HOOK* に差し込んで使う。"
+  "出生を記録する。alife-predator.lisp の *BIRTH-HOOK* に差し込んで使う。"
   (when *logging*
     (let* ((g (organism-genome child))
            (r (make-rec :id (organism-id child)
@@ -176,4 +176,4 @@
                                               (plusp (count-node (genome-speed-tree g) 'if>)))))))
               *timeline*)))))
 
-;;; USES-P / COUNT-NODE は brain.lisp に置いてある（evolve-gp.lisp と共用）。
+;;; USES-P / COUNT-NODE は brain.lisp に置いてある（alife-herbivore.lisp と共用）。

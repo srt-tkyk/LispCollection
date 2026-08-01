@@ -1,6 +1,6 @@
-;;;; alife-clos.lisp — CLOS 版 進化シミュレーション
+;;;; alife-predator.lisp — 捕食者版 進化シミュレーション（草食 + 捕食の2種）
 ;;;;
-;;;;   sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp \
+;;;;   sbcl --load brain.lisp --load spatial.lisp --load alife-predator.lisp \
 ;;;;        --eval '(run-simulation)' --quit
 ;;;;
 ;;;; 前版からの変更:

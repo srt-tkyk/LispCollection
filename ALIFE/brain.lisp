@@ -74,7 +74,7 @@
   (if (> (tree-size tree) *max-size*) fallback tree))
 
 ;;; ── 木の検査 ─────────────────────────────────────────────
-;;; 構造進化の測定（evolve-gp.lisp）と系統の可視化（lineage.lisp）の
+;;; 構造進化の測定（alife-herbivore.lisp）と系統の可視化（lineage.lisp）の
 ;;; 両方から使うので、共通の brain.lisp に置く。
 
 (defun uses-p (tree sym)

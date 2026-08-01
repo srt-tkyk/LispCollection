@@ -2,18 +2,18 @@
 
 <video src="demo.mp4" autoplay loop muted playsinline></video>
 
-<sub>CLOS版 600 tick（`./run.sh video` と同じ設定）。白く縁取られた赤い個体が、
+<sub>捕食者版 600 tick（`./run.sh video` と同じ設定）。白く縁取られた赤い個体が、
 進化の途中で `change-class` により草食から転じた捕食者。終盤で 25 匹まで増える。</sub>
 
 2次元の人工生命シミュレーションを作った。この種のプログラムはふつう
 「餌を見つけたら近づく」といった行動を人間が書くが、ここでは
 **行動を決めるプログラムそのものを進化の対象にしている。**
 
-実装は2つある。以下は推奨の **CLOS 版**（`alife-clos.lisp`）の設定である。
-CLOS は Common Lisp Object System の略で、捕食者と草食獣をクラスで分け、
-`change-class` で種が入れ替わる作りにするために使っている。
-もう一方の **GP 版**（`evolve-gp.lisp`）は草食のみで構造が単純な代わりに
-有性生殖がある。両者の対応表は §2。
+実装は2つあり、登場する種で名前を分けてある。
+以下は推奨の **捕食者版**（`alife-predator.lisp`）の設定で、
+草食獣と捕食者の2種が出てくる。もう一方の **草食版**
+（`alife-herbivore.lisp`）は草食のみで構造が単純な代わりに有性生殖がある。
+両者の対応表は §2。
 
 **世界** — 500×500 の正方形の平面に、個体と餌を撒く。この平面は**トーラス**
 にしてある。上下左右の端がそれぞれつながっていて、右端から出た個体は左端から
@@ -42,18 +42,18 @@ CLOS は Common Lisp Object System の略で、捕食者と草食獣をクラス
 
 - **`turn-tree` が `food-angle` を参照するようになる** — 「餌の方を向く」指示は
   どこにも書いていないが、参照する個体の割合が 1200 tick で 43% → 100% になる。
-  餌への相対角を見ない個体は一匹残らず淘汰された（GP版・§8.1）
+  餌への相対角を見ない個体は一匹残らず淘汰された（草食版・§8.1）
 - **`change-class` による種分化** — `aggression` が `*predator-threshold*` を超えた
   個体が捕食者クラスに転じ、草食個体を捕食しはじめる。閾値を下回れば草食に戻る
-  （CLOS版・§8.3）
+  （捕食者版・§8.3）
 - **捕食者-被食者振動** — 捕食者が増えると獲物が減り、捕食者が餓死して減り、
   獲物が回復する。捕食者数は t=800 の 82 匹をピークに 30〜40 匹で振動した。
   個体群動態を記述したコードは存在しない（§8.3）
 
 木に対する操作は3つしかない。変異は部分木の書き換え（`mutate-tree`）、
 交叉は2個体間での部分木の交換（`crossover`）、表現型化は `COMPILE` による
-ネイティブコード化（`compile-brain`）。CLOS 版は無性生殖なので実際に走るのは
-変異とコンパイルの2つで、交叉が働くのは有性生殖の GP 版である（§4.3）。
+ネイティブコード化（`compile-brain`）。捕食者版は無性生殖なので実際に走るのは
+変異とコンパイルの2つで、交叉が働くのは有性生殖の草食版である（§4.3）。
 
 Lisp で書く理由もここにある。von Neumann が自己増殖オートマトンに要求した
 「受動的な**記述**」と「能動的な**構成器**」の対が、そのままリストと `compile`
@@ -124,45 +124,44 @@ ffmpeg -version
 
 ```
 ALIFE/
-├── brain.lisp        S式ゲノム — 木の生成・変異・交叉・コンパイル
-├── spatial.lisp      トーラス空間ハッシュ + トーラス距離
-├── alife-clos.lisp   ★CLOS版 — 捕食者が進化する（推奨）
-├── evolve-gp.lisp    GP版 — 草食のみ、有性生殖あり、構造が単純
-├── lineage.lisp      系統の記録・S式の差分・行動の応答面
-├── viz.lisp          可視化 — SVG生成と単一HTMLレポート
-├── render.lisp       PPM出力 + ffmpeg で MP4 化
-├── run.sh            実行スクリプト
+├── brain.lisp             S式ゲノム — 木の生成・変異・交叉・コンパイル
+├── spatial.lisp           トーラス空間ハッシュ + トーラス距離
+├── alife-predator.lisp   ★捕食者版 — 捕食者が進化する（推奨）
+├── alife-herbivore.lisp   草食版 — 草食のみ、有性生殖あり、構造が単純
+├── lineage.lisp           系統の記録・S式の差分・行動の応答面
+├── viz.lisp               可視化 — SVG生成と単一HTMLレポート
+├── render.lisp            PPM出力 + ffmpeg で MP4 化
+├── run.sh                 実行スクリプト
 ├── Makefile
-└── demo.mp4          冒頭のデモ動画（`make clean` では消えない）
+└── demo.mp4               冒頭のデモ動画（`make clean` では消えない）
 ```
 
 依存関係:
 
 ```
-brain.lisp ──┬─ evolve-gp.lisp ───────────────┐
-             │                                ├─ render.lisp
-spatial.lisp─┴─ alife-clos.lisp ─┬────────────┘
-                                 └─ lineage.lisp ─ viz.lisp
+brain.lisp ──┬─ alife-herbivore.lisp ─┐
+             │                        ├─ render.lisp
+spatial.lisp─┴─ alife-predator.lisp ──┴─ lineage.lisp ─ viz.lisp
 ```
 
-`alife-clos.lisp` は空間ハッシュと距離の両方を、`evolve-gp.lisp` は距離だけを
-`spatial.lisp` から使う（近傍探索は全走査のまま）。どちらも先に
+`alife-predator.lisp` は空間ハッシュと距離の両方を、`alife-herbivore.lisp` は
+距離だけを `spatial.lisp` から使う（近傍探索は全走査のまま）。どちらも先に
 `brain.lisp` と `spatial.lisp` をロードすること。
-`lineage.lisp` / `viz.lisp` は CLOS 版専用。
+`lineage.lisp` / `viz.lisp` は捕食者版専用。
 
-> **注意**: `evolve-gp.lisp` と `alife-clos.lisp` は同名の関数
+> **注意**: `alife-herbivore.lisp` と `alife-predator.lisp` は同名の関数
 > （`create-world` `behave` `world-step` など）を定義するので、
 > **同じセッションに両方ロードしてはいけない。** どちらか一方を使う。
 
 ### 2つの実装
 
-`alife-clos.lisp` と `evolve-gp.lisp` は、同じS式ゲノムを別の作りで動かした
-2つの実装である。名前が非対称なのは由来が違うだけで——
-**GP** は Genetic Programming（遺伝的プログラミング。プログラムの木を進化させる手法）、
-**CLOS** は Common Lisp Object System（Common Lisp のオブジェクトシステム）——
-**どちらもS式の木を進化させる点は同じ**である。CLOS 版も GP である。
+`alife-predator.lisp` と `alife-herbivore.lisp` は、同じS式ゲノムを
+別の作りで動かした2つの実装である。名前は**どの種が登場するか**で付けてある。
 
-| | `alife-clos.lisp`（CLOS版） | `evolve-gp.lisp`（GP版） |
+**どちらも遺伝的プログラミング (Genetic Programming, GP)** — プログラムの木を
+進化させる手法 — である点は共通で、違いは生態系の作りにある。
+
+| | `alife-predator.lisp`（捕食者版） | `alife-herbivore.lisp`（草食版） |
 |---|---|---|
 | 個体の表現 | CLOS クラス `organism` / `herbivore` / `predator` | `defstruct organism` |
 | 種 | 草食と捕食の2種。`change-class` で相互に転じる | 草食のみ1種 |
@@ -172,10 +171,13 @@ spatial.lisp─┴─ alife-clos.lisp ─┬────────────
 | 系統の可視化 | `lineage.lisp` / `viz.lisp` が使える | 非対応 |
 | 既定値 | 2000 tick / 個体 200 / 餌 250 | 1000 tick / 個体 100 / 餌 180 |
 
-CLOS を使っているのは、捕食関係を多重ディスパッチで書き（§4.5）、
+捕食者版だけが **CLOS**（Common Lisp Object System。Common Lisp の
+オブジェクトシステム）を使っている。捕食関係を多重ディスパッチで書き（§4.5）、
 種分化を `change-class` で表す（§4.6）ためである。
-**捕食の自然発生を見たいなら CLOS 版、木の構造進化だけを最小構成で
-見たいなら GP 版**を使う。
+草食版は種が1つしかないので `defstruct` で足りる。
+
+**捕食の自然発生を見たいなら捕食者版、木の構造進化だけを最小構成で
+見たいなら草食版**を使う。
 
 ---
 
@@ -185,14 +187,14 @@ CLOS を使っているのは、捕食関係を多重ディスパッチで書き
 
 ```bash
 chmod +x run.sh
-./run.sh clos          # CLOS版（捕食者が進化する）
+./run.sh predator          # 捕食者版（捕食者が進化する）
 ```
 
 `make` を使うなら:
 
 ```bash
-make          # = ./run.sh clos
-make gp       # GP版
+make          # = ./run.sh predator
+make herbivore       # 草食版
 make video    # MP4 出力
 make report   # 系統・ゲノム・行動の HTML レポート
 make repl     # ロードして REPL に入る
@@ -202,19 +204,19 @@ make clean    # 出力を削除
 ### 直接 sbcl を叩く
 
 ```bash
-# CLOS版
-sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp \
+# 捕食者版
+sbcl --load brain.lisp --load spatial.lisp --load alife-predator.lisp \
      --eval '(run-simulation)' --quit
 
-# GP版
-sbcl --load brain.lisp --load spatial.lisp --load evolve-gp.lisp \
+# 草食版
+sbcl --load brain.lisp --load spatial.lisp --load alife-herbivore.lisp \
      --eval '(run-simulation)' --quit
 ```
 
 パラメータを変える:
 
 ```bash
-sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp \
+sbcl --load brain.lisp --load spatial.lisp --load alife-predator.lisp \
      --eval '(run-simulation :ticks 5000 :n-org 300 :n-food 400 :print-every 200)' --quit
 ```
 
@@ -225,7 +227,7 @@ sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp \
 ```
 
 ```bash
-sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp --load render.lisp \
+sbcl --load brain.lisp --load spatial.lisp --load alife-predator.lisp --load render.lisp \
      --eval '(render-run :ticks 600 :n-org 200 :n-food 250 :output "my-run.mp4")' --quit
 ```
 
@@ -243,11 +245,11 @@ sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp --load render.
 | **白い縁取り** | **捕食者**（`change-class` で赤くなる） |
 | 白い線 | 進行方向 |
 
-**所要時間の目安**: CLOS版デフォルト（2000 tick, 個体200）で約 23 秒。
+**所要時間の目安**: 捕食者版デフォルト（2000 tick, 個体200）で約 23 秒。
 `./run.sh video` は 600 フレームで 1〜2 分（PPM 書き出しが大半）。
 `./run.sh report` は 3000 tick で約 50 秒。
 
-> **GP版について**: `./run.sh gp` は個体数 100 から始まり、
+> **草食版について**: `./run.sh herbivore` は個体数 100 から始まり、
 > 10 前後で平衡に落ち着く（絶滅はしない）。餌の再生量に対して
 > 繁殖閾値が高いため。構造進化の観測（7.1 / 7.2）はこの状態で起きる。
 > 個体数を保ちたければ `:n-food` を増やすか `try-reproduce` の閾値 75 を下げる。
@@ -313,7 +315,7 @@ lineage.html                    ← SVG を全部インライン。JS は表示�
 - 描画をクライアント側でやるとデータ形式の変換（JSON化）が要る。
   Lisp 側で SVG まで作ってしまえば、JS は `classList.toggle` だけで済む。
 
-シミュレーション本体は系統記録を知らない。`alife-clos.lisp` が持つのは
+シミュレーション本体は系統記録を知らない。`alife-predator.lisp` が持つのは
 `*birth-hook*`（既定 `nil`）だけで、`lineage.lisp` をロードすると
 そこに `log-birth` が刺さる。関数を再定義せず変数に持たせているので、
 可視化を使わない構成では一切のコストがかからない。
@@ -444,8 +446,8 @@ lineage.html                    ← SVG を全部インライン。JS は表示�
 部分木の交換1回で到達している。`speed` や `sense-r` の数値をどう混ぜても、
 条件を入れ子にすることはできない。
 
-なお `crossover` が実際に走るのは有性生殖の GP 版だけである。
-CLOS 版の `try-reproduce` は `mutate` しか呼ばないので、木の変化は変異だけで起きる。
+なお `crossover` が実際に走るのは有性生殖の草食版だけである。
+捕食者版の `try-reproduce` は `mutate` しか呼ばないので、木の変化は変異だけで起きる。
 
 ### 4.4 表現型化
 
@@ -668,7 +670,7 @@ S式では「**Σ**」を決め打ちすることに変わった。
 | `*max-size*` | 40 | 木の最大ノード数（bloat 抑制） |
 | `*use-compiler*` | `t` | `nil` で解釈実行 |
 
-`alife-clos.lisp`:
+`alife-predator.lisp`:
 
 | 変数 | 既定 | 意味 |
 |---|---|---|
@@ -705,7 +707,7 @@ SBCL は起動時の `*random-state*` が毎回同じなので、**既定では�
 *speciation-log*       ; 種転換イベントの履歴
 ```
 
-`evolve-gp.lisp` には構造獲得率の測定もある:
+`alife-herbivore.lisp` には構造獲得率の測定もある:
 
 ```lisp
 (structure-stats w)
@@ -716,7 +718,7 @@ SBCL は起動時の `*random-state*` が毎回同じなので、**既定では�
 `TURN-USES-FOOD-ANGLE` などは**固定次元GAでは原理的に動かない量**。
 進化が構造を獲得したかどうかを直接測っている。
 
-CLOS版では `lineage.lisp` を足すと系統側からも測れる:
+捕食者版では `lineage.lisp` を足すと系統側からも測れる:
 
 ```lisp
 (ancestors-of id)      ; 始祖までの記録
@@ -731,7 +733,7 @@ CLOS版では `lineage.lisp` を足すと系統側からも測れる:
 
 ## 8. 実験結果
 
-### 8.1 感覚運動結合の獲得（GP版, 1200 tick）
+### 8.1 感覚運動結合の獲得（草食版, 1200 tick）
 
 `(create-world 100 180)` を既定の `*random-state*` で 1200 tick 回したときの
 `structure-stats`:
@@ -780,7 +782,7 @@ speed-tree が energy を参照:  53% → 100%
 > 実測では 7.1 の環境でも `if>` 保有率は 68% → 85% で残り続ける（上表）。
 > `if>` は餌が潤沢でも中立に近く、消えるほどのコストは掛かっていない。
 
-### 8.3 捕食の自然発生（CLOS版, 2000 tick）
+### 8.3 捕食の自然発生（捕食者版, 2000 tick）
 
 既定の `*random-state*` で `(run-simulation)` を回したときの実測:
 
@@ -853,10 +855,10 @@ t=900 で草食7・捕食182 → t=1221 全滅。捕獲を確率的にし（0.35
   §8.3 の表で草食+捕食が毎回きっかり 600 になるのはそのため。つまり
   「草食 562 / 捕食 38」の内訳は進化の結果でも、その合計は上限が決めている。
   **共存の一部は上限の産物。** 資源制限で自然に頭打ちになる設計に直すべき。
-- **脳サイズが後半で膨らむ。** CLOS版の平均脳サイズは t=300 の 17.8 を底に、
+- **脳サイズが後半で膨らむ。** 捕食者版の平均脳サイズは t=300 の 17.8 を底に、
   t=2000 では 28.9 まで戻る。増加が始まる t=800 は個体数が上限に達した時点と
   一致しており、**選択圧が弱まると bloat が再発する**ことを示している。
-  GP版でも同様に 26.0 → 28.2（§8.1）。維持コストを個体数依存にするのが筋。
+  草食版でも同様に 26.0 → 28.2（§8.1）。維持コストを個体数依存にするのが筋。
 - **空間ハッシュの効果が限定的。** 1000オブジェクトで全走査比 2 倍
   （1.17秒 → 0.60秒 / 30 tick）止まり。感知半径が最大 130 で世界の幅 500 に
   対して大きすぎ、クエリが格子の大半を舐めている。世界を広げるか

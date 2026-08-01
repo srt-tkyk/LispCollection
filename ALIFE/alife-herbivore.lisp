@@ -1,11 +1,11 @@
-;;;; evolve-gp.lisp — S式ゲノム版 進化シミュレーション
+;;;; alife-herbivore.lisp — 草食版 進化シミュレーション（草食のみ1種）
 ;;;;
-;;;;   sbcl --load brain.lisp --load spatial.lisp --load evolve-gp.lisp \
+;;;;   sbcl --load brain.lisp --load spatial.lisp --load alife-herbivore.lisp \
 ;;;;        --eval '(run-simulation)' --quit
 ;;;;
 ;;;; ゲノム = 形態パラメータ（連続値）+ 脳2本（S式の木）。
 ;;;; 行動は behave にハードコードされず、木の合成として進化する。
-;;;; alife-clos.lisp との違いは、捕食者がなく草食のみであること、
+;;;; alife-predator.lisp との違いは、捕食者がなく草食のみであること、
 ;;;; 有性生殖（交叉）があること、近傍探索が全走査であること。
 ;;;;
 ;;;; 近傍探索は全走査のまま（構造が単純なほうを残す意図）だが、距離だけは
