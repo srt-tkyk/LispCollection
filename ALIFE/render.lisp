@@ -1,9 +1,8 @@
 ;;;; render.lisp — PPM フレーム出力 + ffmpeg で MP4 化
 ;;;;
-;;;; 旧版 render-video.lisp（git 履歴に残る）からの変更:
 ;;;;   - uiop を使わず sb-ext:run-program を直接叩く（(require :asdf) が不要）
-;;;;   - PPM をバイト単位でなく write-sequence で一括書き出し（大幅に高速）
-;;;;   - 捕食者を白いリングで縁取って描き分ける（CLOS 版のときのみ）
+;;;;   - PPM は write-sequence で一括書き出し
+;;;;   - 捕食者は白いリングで縁取って描き分ける（CLOS 版のときのみ）
 ;;;;
 ;;;; evolve-gp.lisp / alife-clos.lisp のどちらとも組み合わせて使える。
 

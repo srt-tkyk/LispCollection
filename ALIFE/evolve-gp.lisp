@@ -3,11 +3,10 @@
 ;;;;   sbcl --load brain.lisp --load spatial.lisp --load evolve-gp.lisp \
 ;;;;        --eval '(run-simulation)' --quit
 ;;;;
-;;;; 旧版 evolve.lisp（行動が固定だった版。git 履歴に残る）との違い:
-;;;;   ゲノム = 形態パラメータ（連続値）+ 脳2本（S式の木）
-;;;;   行動は behave にハードコードされず、木の合成として進化する。
-;;;; genome-hue / genome-sense-r / organism-* は残してあるので
-;;;; render.lisp はそのまま使える。
+;;;; ゲノム = 形態パラメータ（連続値）+ 脳2本（S式の木）。
+;;;; 行動は behave にハードコードされず、木の合成として進化する。
+;;;; alife-clos.lisp との違いは、捕食者がなく草食のみであること、
+;;;; 有性生殖（交叉）があること、近傍探索が全走査であること。
 ;;;;
 ;;;; 近傍探索は全走査のまま（構造が単純なほうを残す意図）だが、距離だけは
 ;;;; spatial.lisp のトーラス距離を使う。世界が mod で巻き戻る以上、

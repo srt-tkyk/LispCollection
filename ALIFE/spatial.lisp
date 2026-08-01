@@ -1,6 +1,6 @@
 ;;;; spatial.lisp — トーラス世界の空間ハッシュ
 ;;;;
-;;;; 元の nearest-food は全食料を走査していたので O(個体数 × 餌数)。
+;;;; 近傍探索を素直に全走査で書くと O(個体数 × 餌数) になる。
 ;;;; 格子分割して近傍セルだけ見ることで O(N) に落とす。
 
 (defstruct (sindex (:constructor %make-sindex))
