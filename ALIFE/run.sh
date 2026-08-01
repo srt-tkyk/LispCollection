@@ -4,7 +4,8 @@
 #   ./run.sh gp            S式ゲノム版（草食のみ）をテキスト実行
 #   ./run.sh video         CLOS版を MP4 出力
 #   ./run.sh video-gp      GP版を MP4 出力
-#   ./run.sh repl          CLOS版をロードして REPL に入る
+#   ./run.sh report        系統・ゲノム・行動の HTML レポートを出力
+#   ./run.sh repl          可視化まで込みでロードして REPL に入る
 set -e
 cd "$(dirname "$0")"
 CMD="${1:-clos}"
@@ -24,8 +25,13 @@ case "$CMD" in
   video-gp)
     sbcl --load brain.lisp --load spatial.lisp --load evolve-gp.lisp --load render.lisp \
          --eval '(render-run :output "alife-gp.mp4" :n-org 60 :n-food 120)' --quit ;;
+  report)
+    sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp \
+         --load lineage.lisp --load viz.lisp \
+         --eval '(run-report :output "lineage.html")' --quit ;;
   repl)
-    sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp ;;
+    sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp \
+         --load lineage.lisp --load viz.lisp ;;
   *)
-    echo "unknown: $CMD"; echo "usage: ./run.sh [clos|gp|video|video-gp|repl]"; exit 1 ;;
+    echo "unknown: $CMD"; echo "usage: ./run.sh [clos|gp|video|video-gp|report|repl]"; exit 1 ;;
 esac

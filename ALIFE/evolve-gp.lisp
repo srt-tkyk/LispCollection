@@ -228,14 +228,7 @@
 
 ;;; ── 構造進化の測定 ───────────────────────────────────────
 
-(defun uses-p (tree sym)
-  (if (consp tree) (some (lambda (x) (uses-p x sym)) tree) (eq tree sym)))
-
-(defun count-node (tree sym)
-  (if (consp tree)
-      (+ (if (eq (car tree) sym) 1 0)
-         (reduce #'+ (mapcar (lambda (x) (count-node x sym)) (cdr tree))))
-      0))
+;;; uses-p / count-node は brain.lisp に置いてある（lineage.lisp と共用）。
 
 (defun structure-stats (w)
   "進化が『構造』を獲得したかを測る。固定次元GAでは原理的に動かない量。"

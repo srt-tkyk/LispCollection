@@ -1,1 +1,8 @@
 .claude/
+
+# 生成物。demo.mp4 はコミットするので *.mp4 とは書かない。
+ALIFE/alife.mp4
+ALIFE/alife-gp.mp4
+ALIFE/*.html
+ALIFE/*.fasl
+ALIFE/*.log

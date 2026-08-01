@@ -73,6 +73,21 @@
   "大きくなりすぎた木は採用せず FALLBACK を返す。"
   (if (> (tree-size tree) *max-size*) fallback tree))
 
+;;; ── 木の検査 ─────────────────────────────────────────────
+;;; 構造進化の測定（evolve-gp.lisp）と系統の可視化（lineage.lisp）の
+;;; 両方から使うので、共通の brain.lisp に置く。
+
+(defun uses-p (tree sym)
+  "TREE のどこかに終端 SYM が現れるか。"
+  (if (consp tree) (some (lambda (x) (uses-p x sym)) tree) (eq tree sym)))
+
+(defun count-node (tree sym)
+  "関数節 SYM の出現回数。"
+  (if (consp tree)
+      (+ (if (eq (car tree) sym) 1 0)
+         (reduce #'+ (mapcar (lambda (x) (count-node x sym)) (cdr tree))))
+      0))
+
 ;;; ── 変異と交叉 ───────────────────────────────────────────
 
 (defun mutate-tree (tree &key (rate 0.20))

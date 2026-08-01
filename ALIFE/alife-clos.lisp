@@ -49,24 +49,34 @@
 
 ;;; ── クラス階層 ───────────────────────────────────────────
 
+(defvar *id-counter* 0)
+(defun next-id () (incf *id-counter*))
+
 (defclass organism ()
   ((genome :initarg :genome :accessor organism-genome)
    (x      :initarg :x      :accessor organism-x)
    (y      :initarg :y      :accessor organism-y)
    (angle  :initarg :angle  :accessor organism-angle)
    (energy :initarg :energy :accessor organism-energy :initform 50.0)
-   (age    :initform 0      :accessor organism-age)))
+   (age    :initform 0      :accessor organism-age)
+   ;; ── 系統追跡 ──
+   ;; 親を ID で持つ。オブジェクト参照だと死んだ親が回収されず、
+   ;; 系統をたどるだけのために世代全部が生き残ってしまう。
+   (id         :initarg :id     :accessor organism-id     :initform (next-id))
+   (parent-id  :initarg :parent :accessor organism-parent :initform nil)
+   (birth-tick :initarg :birth  :accessor organism-birth  :initform 0)))
 
 (defclass herbivore (organism) ())
 (defclass predator  (organism) ())
 
 (defstruct food (x 0.0) (y 0.0) (value 20.0))
 
-(defun make-organism (&key genome x y angle (energy 50.0) (class 'herbivore))
+(defun make-organism (&key genome x y angle (energy 50.0) (class 'herbivore)
+                           parent (birth 0))
   (make-instance class :genome genome
                        :x (or x (random 500.0)) :y (or y (random 500.0))
                        :angle (or angle (random +2pi1+))
-                       :energy energy))
+                       :energy energy :parent parent :birth birth))
 
 ;;; ── 種分化: change-class ─────────────────────────────────
 ;;; 個体の同一性 (EQ) を保ったままクラスだけが変わる。
@@ -80,12 +90,12 @@
     ((old herbivore) (new predator) &key)
   "草食獣が捕食者に転じたときの後処理。CLOS の標準プロトコルに乗せる。"
   (setf (genome-hue (organism-genome new)) 0.0)      ; 赤くなる
-  (push (cons (organism-age new) :to-predator) *speciation-log*))
+  (push (list (organism-id new) (organism-age new) :to-predator) *speciation-log*))
 
 (defmethod update-instance-for-different-class :after
     ((old predator) (new herbivore) &key)
   (setf (genome-hue (organism-genome new)) 120.0)    ; 緑に戻る
-  (push (cons (organism-age new) :to-herbivore) *speciation-log*))
+  (push (list (organism-id new) (organism-age new) :to-herbivore) *speciation-log*))
 
 (defun maybe-speciate (org)
   (let ((a (genome-aggression (organism-genome org))))
@@ -93,6 +103,14 @@
            (change-class org 'predator))
           ((and (typep org 'predator) (< a (- *predator-threshold* 0.15)))
            (change-class org 'herbivore)))))
+
+;;; ── ログフック ───────────────────────────────────────────
+;;; 既定は nil で、シミュレーション本体は系統記録を一切知らない。
+;;; lineage.lisp をロードすると LOG-BIRTH が刺さる。関数を再定義するのでなく
+;;; 変数に持たせているのは、再定義警告を出さずに差し替えるため。
+
+(defvar *birth-hook* nil
+  "(lambda (child parent w)) 。設定されていれば出生ごとに呼ばれる。")
 
 ;;; ── 世界 ─────────────────────────────────────────────────
 
@@ -219,8 +237,11 @@
                                 :x (+ (organism-x org) (gauss 0 5.0))
                                 :y (+ (organism-y org) (gauss 0 5.0))
                                 :energy (* 0.45 (reproduce-threshold org))
-                                :class (class-name (class-of org)))))
+                                :class (class-name (class-of org))
+                                :parent (organism-id org)
+                                :birth (world-tick w))))
       (maybe-speciate child)
+      (when *birth-hook* (funcall *birth-hook* child org w))
       (push child (world-organisms w)))))
 
 (defun behave (org w)
@@ -302,7 +323,7 @@
     (show-brains w)
     (format t "種転換イベント: ~d 回 (→捕食 ~d / →草食 ~d)~%"
             (length *speciation-log*)
-            (count :to-predator  *speciation-log* :key #'cdr)
-            (count :to-herbivore *speciation-log* :key #'cdr))
+            (count :to-predator  *speciation-log* :key #'third)
+            (count :to-herbivore *speciation-log* :key #'third))
     (format t "コンパイル済み脳: ~d 種類~%" (hash-table-count *brain-cache*))
     w))

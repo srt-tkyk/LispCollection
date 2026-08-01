@@ -68,6 +68,8 @@ ALIFE/
 ├── spatial.lisp      トーラス空間ハッシュ + トーラス距離
 ├── alife-clos.lisp   ★CLOS版 — 捕食者が進化する（推奨）
 ├── evolve-gp.lisp    S式ゲノム版 — 草食のみ、構造が単純
+├── lineage.lisp      系統の記録・S式の差分・行動の応答面
+├── viz.lisp          可視化 — SVG生成と単一HTMLレポート
 ├── render.lisp       PPM出力 + ffmpeg で MP4 化
 ├── run.sh            実行スクリプト
 ├── Makefile
@@ -77,14 +79,16 @@ ALIFE/
 依存関係:
 
 ```
-brain.lisp ──┬─ evolve-gp.lisp ──┐
-             │                   ├─ render.lisp
-spatial.lisp─┴─ alife-clos.lisp ─┘
+brain.lisp ──┬─ evolve-gp.lisp ───────────────┐
+             │                                ├─ render.lisp
+spatial.lisp─┴─ alife-clos.lisp ─┬────────────┘
+                                 └─ lineage.lisp ─ viz.lisp
 ```
 
 `alife-clos.lisp` は空間ハッシュと距離の両方を、`evolve-gp.lisp` は距離だけを
 `spatial.lisp` から使う（近傍探索は全走査のまま）。どちらも先に
 `brain.lisp` と `spatial.lisp` をロードすること。
+`lineage.lisp` / `viz.lisp` は CLOS 版専用。
 
 > **注意**: `evolve-gp.lisp` と `alife-clos.lisp` は同名の関数
 > （`create-world` `behave` `world-step` など）を定義するので、
@@ -107,6 +111,7 @@ chmod +x run.sh
 make          # = ./run.sh clos
 make gp       # GP版
 make video    # MP4 出力
+make report   # 系統・ゲノム・行動の HTML レポート
 make repl     # ロードして REPL に入る
 make clean    # 出力を削除
 ```
@@ -157,6 +162,7 @@ sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp --load render.
 
 **所要時間の目安**: CLOS版デフォルト（2000 tick, 個体200）で約 23 秒。
 `./run.sh video` は 600 フレームで 1〜2 分（PPM 書き出しが大半）。
+`./run.sh report` は 3000 tick で約 50 秒。
 
 > **GP版について**: `./run.sh gp` は個体数 100 から始まり、
 > 10 前後で平衡に落ち着く（絶滅はしない）。餌の再生量に対して
@@ -193,6 +199,97 @@ sbcl --load brain.lisp --load spatial.lisp --load alife-clos.lisp --load render.
   (change-class o 'predator)
   (values o (class-of o)))
 ```
+
+### ゲノムと行動の可視化
+
+```bash
+make report          # lineage.html を生成（3000 tick で約 50 秒）
+```
+
+ブラウザで `lineage.html` を開く。**外部依存なしの単一ファイル**で、
+オフラインでも動く。スライダか矢印キーで世代を送る。
+
+#### 構成
+
+```
+シミュレーション (SBCL)
+   ↓  *birth-hook* で全個体の genome を記録
+*lineage*  (id → 記録)          ← S式のまま。PRINT/READ で保存・復元可
+   ↓  richest-lineage で1系統を選び、mutation-points で無変異世代を捨てる
+   ↓  Lisp が全世代分の SVG を生成
+lineage.html                    ← SVG を全部インライン。JS は表示切替のみ
+```
+
+**なぜこの分け方か。**
+
+- 600個体のゲノムを同時に見ることはできないので、**1系統に絞る**。
+  `richest-lineage` は「祖先チェーン上で木が最も多く変化した」個体を選ぶ。
+  最長寿個体は初期個体（祖先ゼロ）になりがちなので使えない。
+- 系統をたどっても、**大半の世代は無変異**。`mutation-points` が
+  変化のあった世代だけを抜き出す。
+- 描画をクライアント側でやるとデータ形式の変換（JSON化）が要る。
+  Lisp 側で SVG まで作ってしまえば、JS は `classList.toggle` だけで済む。
+
+シミュレーション本体は系統記録を知らない。`alife-clos.lisp` が持つのは
+`*birth-hook*`（既定 `nil`）だけで、`lineage.lisp` をロードすると
+そこに `log-birth` が刺さる。関数を再定義せず変数に持たせているので、
+可視化を使わない構成では一切のコストがかからない。
+
+#### 4つのビュー
+
+| # | ビュー | 答える問い |
+|---|---|---|
+| 1 | 集団統計の時系列 | 集団全体で何が起きたか |
+| 2 | 中立変異の集計 | S式の変化は行動を変えたか |
+| 3 | 木の図 + 応答面（世代ごと） | どの部分木がいつ変わり、行動がどう変わったか |
+| 4 | 現存個体の脳 | 最終的にどんなプログラムが残ったか |
+
+**木の図**: `turn-tree` を節点リンク図で描く。**赤いノードが親から変化した部分。**
+終端は種類ごとに色分け（`food-angle` 青 / `energy` 橙 / `food-dist` 緑 / `age` 紫）。
+
+**応答面**: `food-angle` × `food-dist` の格子で脳を評価し、旋回量を
+青（左）↔ 赤（右）で塗る。**遺伝子型ではなく表現型を直接見ている。**
+親と子を並べて出すので、S式の変化が行動に効いたかが一目で分かる。
+階調は 14 段に量子化してあり、等高線として読める。
+
+#### 応答面がなぜ要るか
+
+木の図だけでは、**S式が違っても行動が同じ**ことが見えない。
+
+```lisp
+(+ (* ENERGY 2.0) FOOD-ANGLE)     ; 親
+(+ FOOD-ANGLE (* ENERGY 2.0))     ; 子 — 木としては別物
+→ 応答面RMS差 0.0000              ; 行動は完全に同一（中立変異）
+```
+
+逆に1ノードの変異で行動が激変することもある。
+遺伝子型空間の距離と表現型空間の距離は一致しない。
+その乖離を見るための道具が応答面。
+
+#### REPL から個別に使う
+
+```lisp
+;; 系統を取り出す
+(defparameter *chain* (richest-lineage *w*))
+(length *chain*)                          ; 世代数
+(mapcar #'rec-turn *chain*)               ; 各世代の脳
+
+;; 変異のあった世代だけ
+(defparameter *m* (mutation-points *chain*))
+(destructuring-bind (before after diff) (first *m*)
+  (list (rec-turn before) (rec-turn after) (changed-node-count diff)))
+
+;; 2つの脳の行動がどれだけ違うか
+(surface-distance (response-surface '(+ FOOD-ANGLE 1.0))
+                  (response-surface '(+ 1.0 FOOD-ANGLE)))   ; => 0.0
+
+;; ログをファイルに残して後から読み戻す
+(start-logging "run.log") ... (stop-logging)
+(load-log "run.log")      ; READ 一発。パーサ不要
+```
+
+最後の点は S 式ゲノムの副次的な利得。ログが Lisp のデータなので、
+シリアライザもパーサも書かずに済む。
 
 ---
 
@@ -358,6 +455,17 @@ SBCL は起動時の `*random-state*` が毎回同じなので、**既定では�
 `TURN-USES-FOOD-ANGLE` などは**固定次元GAでは原理的に動かない量**。
 進化が構造を獲得したかどうかを直接測っている。
 
+CLOS版では `lineage.lisp` を足すと系統側からも測れる:
+
+```lisp
+(ancestors-of id)      ; 始祖までの記録
+(richest-lineage w)    ; 最も木が変化した系統
+(mutation-points chain); 変異のあった世代だけ
+(tree-diff old new)    ; どの部分木が変わったか
+(response-surface tree); 行動そのもの（表現型）
+(surface-distance a b) ; 2つの行動の隔たり
+```
+
 ---
 
 ## 7. 実験結果
@@ -440,6 +548,28 @@ seed を変えても捕食者は定着する:
 
 どの seed でも →草食 の逆遷移が発生しており、`change-class` が可逆に効いている。
 
+### 7.4 中立変異は起きたか（seed 既定, 3000 tick）
+
+`make report` の実測。`richest-lineage` が選んだ系統は 68 世代あり、
+そのうち turn-tree が変化したのは 18 世代だけだった（残り 50 世代は無変異）。
+その 18 世代の応答面RMS差:
+
+```
+0.582 2.035 2.035 0.423 0.228 0.170 0.231 0.209 0.167
+0.135 0.415 0.386 0.193 0.232 0.219 0.256 0.457 0.428
+最小 0.135 / 中央 0.256 / 最大 2.035
+中立(RMS < 0.01): 0 件
+```
+
+**この系統では中立変異が観測されなかった。** ただし `mutation-points` は
+既に「構造が変わった世代」だけに絞り込んでいるので、これは
+「構造変化のうち行動を変えなかったもの」の割合が 0/18 だったという意味。
+イントロン（実行されない部分木）が育てば中立変異も出るはずで、
+サンプル 18 は結論を出すには少ない。
+
+なお 3000 tick まで回すと平均脳サイズは 39.4 まで膨らむ（2000 tick 時点で 28.9）。
+§9 の bloat の指摘はこの区間で顕著になる。
+
 ---
 
 ## 8. 調整の履歴（同じ失敗をしないために）
@@ -484,10 +614,13 @@ t=900 で草食7・捕食182 → t=1221 全滅。捕獲を確率的にし（0.35
 1. **記憶の導入** — `(mem)` `(store x)` を終端・関数に足す。
    これだけで履歴依存の戦略が探索空間に入る。
 2. **他個体の知覚** — `neighbor-angle` `neighbor-count` を足すと群れが可能になる。
-3. **系統樹の記録** — 親のIDを個体に持たせ、脳の変遷を `print` して追う。
-   S式なので系統樹の各ノードがそのまま人間可読。
-4. **資源による個体数制限** — `pop-cap` を廃し、餌の再生速度だけで
-   キャリング・キャパシティが決まるようにする。
+3. **資源による個体数制限** — `pop-cap` を廃し、餌の再生速度だけで
+   キャリング・キャパシティが決まるようにする。§9 の張り付き問題が消える。
+4. **中立変異の観測** — §7.4 はサンプル 18 で 0 件だった。イントロンが
+   育つ条件（`*max-size*` を上げる、脳の維持コストを下げる）を探せば、
+   遺伝子型と表現型の乖離を実際に見られるはず。
+
+> **済**: 系統樹の記録は `lineage.lisp` / `viz.lisp` として実装した（§3 の可視化）。
 
 ---
 
