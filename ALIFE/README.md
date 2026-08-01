@@ -493,4 +493,7 @@ t=900 で草食7・捕食182 → t=1221 全滅。捕獲を確率的にし（0.35
 
 ## ライセンス
 
-元リポジトリ https://github.com/srt-tkyk/LispCollection に準じる。
+MIT License — 全文はリポジトリ直下の [LICENSE](../LICENSE) を参照。
+
+Copyright (c) 2026 Takayuki Shirota
+https://github.com/srt-tkyk/LispCollection
