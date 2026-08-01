@@ -9,7 +9,11 @@
 「餌を見つけたら近づく」といった行動を人間が書くが、ここでは
 **行動を決めるプログラムそのものを進化の対象にしている。**
 
-以下は推奨の CLOS 版の設定である（もう一方の GP 版との違いは §2）。
+実装は2つある。以下は推奨の **CLOS 版**（`alife-clos.lisp`）の設定である。
+CLOS は Common Lisp Object System の略で、捕食者と草食獣をクラスで分け、
+`change-class` で種が入れ替わる作りにするために使っている。
+もう一方の **GP 版**（`evolve-gp.lisp`）は草食のみで構造が単純な代わりに
+有性生殖がある。両者の対応表は §2。
 
 **世界** — 500×500 の正方形の平面に、個体と餌を撒く。この平面は**トーラス**
 にしてある。上下左右の端がそれぞれつながっていて、右端から出た個体は左端から
@@ -123,7 +127,7 @@ ALIFE/
 ├── brain.lisp        S式ゲノム — 木の生成・変異・交叉・コンパイル
 ├── spatial.lisp      トーラス空間ハッシュ + トーラス距離
 ├── alife-clos.lisp   ★CLOS版 — 捕食者が進化する（推奨）
-├── evolve-gp.lisp    S式ゲノム版 — 草食のみ、構造が単純
+├── evolve-gp.lisp    GP版 — 草食のみ、有性生殖あり、構造が単純
 ├── lineage.lisp      系統の記録・S式の差分・行動の応答面
 ├── viz.lisp          可視化 — SVG生成と単一HTMLレポート
 ├── render.lisp       PPM出力 + ffmpeg で MP4 化
@@ -149,6 +153,29 @@ spatial.lisp─┴─ alife-clos.lisp ─┬────────────
 > **注意**: `evolve-gp.lisp` と `alife-clos.lisp` は同名の関数
 > （`create-world` `behave` `world-step` など）を定義するので、
 > **同じセッションに両方ロードしてはいけない。** どちらか一方を使う。
+
+### 2つの実装
+
+`alife-clos.lisp` と `evolve-gp.lisp` は、同じS式ゲノムを別の作りで動かした
+2つの実装である。名前が非対称なのは由来が違うだけで——
+**GP** は Genetic Programming（遺伝的プログラミング。プログラムの木を進化させる手法）、
+**CLOS** は Common Lisp Object System（Common Lisp のオブジェクトシステム）——
+**どちらもS式の木を進化させる点は同じ**である。CLOS 版も GP である。
+
+| | `alife-clos.lisp`（CLOS版） | `evolve-gp.lisp`（GP版） |
+|---|---|---|
+| 個体の表現 | CLOS クラス `organism` / `herbivore` / `predator` | `defstruct organism` |
+| 種 | 草食と捕食の2種。`change-class` で相互に転じる | 草食のみ1種 |
+| ゲノム | 形態5 + `aggression` + 木2本 | 形態5 + 木2本 |
+| 生殖 | 無性（変異のみ） | 有性（`*mate-radius*` 40 以内の個体と交叉） |
+| 近傍探索 | 空間ハッシュ | 餌の全走査 |
+| 系統の可視化 | `lineage.lisp` / `viz.lisp` が使える | 非対応 |
+| 既定値 | 2000 tick / 個体 200 / 餌 250 | 1000 tick / 個体 100 / 餌 180 |
+
+CLOS を使っているのは、捕食関係を多重ディスパッチで書き（§4.5）、
+種分化を `change-class` で表す（§4.6）ためである。
+**捕食の自然発生を見たいなら CLOS 版、木の構造進化だけを最小構成で
+見たいなら GP 版**を使う。
 
 ---
 
